@@ -58,6 +58,7 @@ func main() {
 	r := gin.Default()
 
 	r.POST("/orders", orderHandler.CreateOrder)
+	r.GET("/orders/:id", orderHandler.GetOrder)
 
 	// Start server
 	log.Println("Server starting on :8080")

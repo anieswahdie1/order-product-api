@@ -18,3 +18,7 @@ func NewOrderService(repo *repositories.DBRepository) *OrderService {
 func (s *OrderService) CreateOrder(ctx context.Context, req models.OrderRequest) (*models.Order, error) {
 	return s.repo.CreateOrder(ctx, req.ProductID, req.Quantity, req.BuyerID)
 }
+
+func (s *OrderService) GetOrder(ctx context.Context, id int) (*models.Order, error) {
+	return s.repo.GetOrder(ctx, id)
+}

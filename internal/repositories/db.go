@@ -52,3 +52,11 @@ func (r *DBRepository) CreateOrder(ctx context.Context, productID, quantity int,
 
 	return order, nil
 }
+
+func (r *DBRepository) GetOrder(ctx context.Context, id int) (*models.Order, error) {
+	var order models.Order
+	if err := r.db.WithContext(ctx).First(&order, id).Error; err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
