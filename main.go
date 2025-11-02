@@ -4,19 +4,20 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
 
 func main() {
-	db, err := sql.Open("postgres", "postgres://postgres:password@localhost:5432/order_product?sslmode=disable")
+	connStr := "postgres://postgres:5396@localhost:5432/order_product?sslmode=disable"
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 	defer db.Close()
-	r := gin.Default()
-
-	// Start server
-	log.Println("Server starting on :8080")
-	log.Fatal(r.Run(":8080"))
+	// Test connection
+	if err := db.Ping(); err != nil {
+		log.Fatal("Failed to ping database:", err)
+	}
+	log.Println("Connected to database successfully")
 
 }
