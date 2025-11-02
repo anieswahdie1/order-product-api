@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"github.com/anieswahdie1/order-product-api.git/internal/handlers"
+	"github.com/anieswahdie1/order-product-api.git/internal/jobs"
 	"github.com/anieswahdie1/order-product-api.git/internal/models"
 	"github.com/anieswahdie1/order-product-api.git/internal/repositories"
 	"github.com/anieswahdie1/order-product-api.git/internal/services"
@@ -51,14 +53,29 @@ func main() {
 
 	repo := repositories.NewDBRepository(db)
 
+	workers := 4
+	if envWorkers := os.Getenv("WORKERS"); envWorkers != "" {
+		fmt.Sscanf(envWorkers, "%d", &workers)
+	}
+
+	workerPool := jobs.NewWorkerPool(repo, workers)
+	workerPool.Start()
+
 	orderService := services.NewOrderService(repo)
+	jobService := services.NewJobService(repo, workerPool)
 
 	orderHandler := handlers.NewOrderHandler(orderService)
+	jobHandler := handlers.NewJobHandler(jobService)
 
 	r := gin.Default()
 
 	r.POST("/orders", orderHandler.CreateOrder)
 	r.GET("/orders/:id", orderHandler.GetOrder)
+
+	r.POST("/jobs/settlement", jobHandler.CreateSettlementJob)
+	r.GET("/jobs/:id", jobHandler.GetJob)
+	r.POST("/jobs/:id/cancel", jobHandler.CancelJob)
+	r.GET("/downloads/:id.csv", jobHandler.DownloadResult)
 
 	// Start server
 	log.Println("Server starting on :8080")
