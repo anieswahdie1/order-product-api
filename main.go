@@ -1,30 +1,53 @@
 package main
 
 import (
-	"database/sql"
 	"log"
+	"os"
+	"time"
 
 	"github.com/anieswahdie1/order-product-api.git/internal/handlers"
+	"github.com/anieswahdie1/order-product-api.git/internal/models"
 	"github.com/anieswahdie1/order-product-api.git/internal/repositories"
 	"github.com/anieswahdie1/order-product-api.git/internal/services"
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func main() {
-	connStr := "postgres://postgres:5396@localhost:5432/order_product?sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
+	dsn := "host=localhost user=postgres password=5396 dbname=order_product port=5432 sslmode=disable TimeZone=Asia/Jakarta"
+
+	newLogger := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		logger.Config{
+			SlowThreshold: time.Second,
+			LogLevel:      logger.Info,
+			Colorful:      true,
+		},
+	)
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: newLogger,
+	})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	defer db.Close()
+	err = db.AutoMigrate(
+		&models.Product{},
+		&models.Order{},
+		&models.Transaction{},
+		&models.Settlement{},
+		&models.Job{},
+	)
 
-	// Test connection
-	if err := db.Ping(); err != nil {
-		log.Fatal("Failed to ping database:", err)
+	if err != nil {
+		log.Fatal("Failed to migrate database:", err)
 	}
-	log.Println("Connected to database successfully")
+
+	log.Println("Database migrated successfully")
 
 	repo := repositories.NewDBRepository(db)
 
