@@ -25,4 +25,14 @@ docker-compose up -d
 - POST /jobs/:id/cancel - Cancel job
 - GET /downloads/:id.csv - Download settlement CSV
 
+
+result test:
+order_service_test.go:77: === RESULTS ===
+    order_service_test.go:78: Successful orders: 100
+    order_service_test.go:79: Failed orders: 400
+    order_service_test.go:80: Final stock: 0
+    order_service_test.go:81: Total orders in database: 100
+--- PASS: TestConcurrentOrders (0.80s)
+PASS
+ok      github.com/anieswahdie1/order-product-api.git/internal/services      1.410s
 ```
