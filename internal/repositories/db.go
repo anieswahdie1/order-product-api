@@ -22,19 +22,17 @@ func (r *DBRepository) CreateOrder(ctx context.Context, productID, quantity int,
 	var order *models.Order
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var product models.Product
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			First(&product, productID).Error; err != nil {
-			return err
+		result := tx.Exec(
+			"UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?",
+			quantity, productID, quantity,
+		)
+
+		if result.Error != nil {
+			return result.Error
 		}
 
-		if product.Stock < quantity {
+		if result.RowsAffected == 0 {
 			return fmt.Errorf("OUT_OF_STOCK")
-		}
-
-		if err := tx.Model(&product).
-			Update("stock", gorm.Expr("stock - ?", quantity)).Error; err != nil {
-			return err
 		}
 
 		order = &models.Order{

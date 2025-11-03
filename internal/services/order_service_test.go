@@ -19,8 +19,14 @@ func TestConcurrentOrders(t *testing.T) {
 		t.Fatal("Failed to connect to database:", err)
 	}
 
-	// Reset product stock
+	// BERSIHKAN DATA LAMA + RESET STOCK
+	db.Exec("DELETE FROM orders")
 	db.Model(&models.Product{}).Where("id = ?", 1).Update("stock", 100)
+
+	// Verify initial state
+	var initialProduct models.Product
+	db.First(&initialProduct, 1)
+	t.Logf("Initial stock: %d", initialProduct.Stock)
 
 	repo := repositories.NewDBRepository(db)
 	service := NewOrderService(repo)
@@ -28,6 +34,7 @@ func TestConcurrentOrders(t *testing.T) {
 	// Test concurrent orders
 	concurrentUsers := 500
 	successfulOrders := 0
+	failedOrders := 0
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
@@ -48,6 +55,13 @@ func TestConcurrentOrders(t *testing.T) {
 				mu.Lock()
 				successfulOrders++
 				mu.Unlock()
+			} else {
+				mu.Lock()
+				failedOrders++
+				mu.Unlock()
+				if err.Error() != "OUT_OF_STOCK" {
+					t.Logf("Unexpected error for user %d: %v", userID, err)
+				}
 			}
 		}(i)
 	}
@@ -60,7 +74,9 @@ func TestConcurrentOrders(t *testing.T) {
 	var orderCount int64
 	db.Model(&models.Order{}).Where("product_id = ?", 1).Count(&orderCount)
 
+	t.Logf("=== RESULTS ===")
 	t.Logf("Successful orders: %d", successfulOrders)
+	t.Logf("Failed orders: %d", failedOrders)
 	t.Logf("Final stock: %d", product.Stock)
 	t.Logf("Total orders in database: %d", orderCount)
 
